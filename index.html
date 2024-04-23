@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>지반 침하량에 따른 Bearing Capacity 계산기</title>
+<script>
+function calculateBearingCapacity() {
+    // 입력 값을 가져오기
+    var settlementTarget = parseFloat(document.getElementById('settlementTarget').value);
+    var B = parseFloat(document.getElementById('B').value);
+    var L = parseFloat(document.getElementById('L').value);
+    var H = parseFloat(document.getElementById('H').value);
+    var Es = document.getElementById('Es').value.split(',').map(Number);
+    var zValues = document.getElementById('zValues').value.split(',').map(Number);
+
+    // 필요한 계산 수행
+    var IC = zValues.map(z => 0.5 * (1 - (z / H) ** 2));
+    var dz = zValues.slice(1).map((z, i) => z - zValues[i]);
+    dz.push(dz[dz.length - 1]); // 마지막 깊이 차분
+
+    var q_net = 50; // 초기 추정치
+    var error, calculatedSettlement;
+
+    for (let i = 0; i < 100; i++) { // 최대 100번 반복
+        calculatedSettlement = IC.reduce((acc, ic, idx) => acc + (q_net * ic * dz[idx] / Es[idx]), 0);
+        error = settlementTarget - calculatedSettlement;
+        if (Math.abs(error) < 0.001) break; // 오차 범위 내면 종료
+        q_net += error * 1000; // 오차에 따라 조정
+    }
+
+    var area = B * L;
+    var bearingCapacity = q_net / area;
+
+    // 결과 출력
+    document.getElementById('result').textContent = "Estimated Bearing Capacity: " + bearingCapacity.toFixed(2) + " kPa";
+}
+</script>
+</head>
+<body>
+<h1>지반 침하량에 따른 Bearing Capacity 계산기</h1>
+<div>
+    <label>목표 침하량(m): <input type="number" id="settlementTarget" step="0.01"></label>
+</div>
+<div>
+    <label>기초 폭(m): <input type="number" id="B" step="0.1"></label>
+</div>
+<div>
+    <label>기초 길이(m): <input type="number" id="L" step="0.1"></label>
+</div>
+<div>
+    <label>토층 두께(m): <input type="number" id="H" step="0.1"></label>
+</div>
+<div>
+    <label>토양 탄성계수(kPa) (쉼표로 구분): <input type="text" id="Es"></label>
+</div>
+<div>
+    <label>깊이 값(m) (쉼표로 구분): <input type="text" id="zValues"></label>
+</div>
+<button onclick="calculateBearingCapacity()">Bearing Capacity 계산하기</button>
+<div id="result"></div>
+</body>
+</html>
